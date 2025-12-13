@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: agri-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agri}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agri}
+      POSTGRES_DB: ${POSTGRES_DB:-agri}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agri} -d ${POSTGRES_DB:-agri}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  prefect-server:
+    image: prefecthq/prefect:3-python3.12
+    container_name: agri-prefect-server
+    command: ["prefect", "server", "start", "--host", "0.0.0.0", "--port", "4200"]
+    ports:
+      - "4200:4200"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PREFECT_API_URL: "http://127.0.0.1:4200/api"
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:4200/api/health', timeout=2).read()\""
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+    restart: unless-stopped
+
+  prefect-worker:
+    image: prefecthq/prefect:3-python3.12
+    container_name: agri-prefect-worker
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    environment:
+      PREFECT_API_URL: "http://prefect-server:4200/api"
+    volumes:
+      - ./:/opt/app
+    working_dir: /opt/app
+    command:
+      [
+        "sh",
+        "-c",
+        "python - <<'PY'\nimport time, urllib.request\nurl='http://prefect-server:4200/api/health'\nfor _ in range(60):\n    try:\n        urllib.request.urlopen(url, timeout=2).read(); break\n    except Exception:\n        time.sleep(2)\nPY\nprefect worker start --pool default-agent-pool"
+      ]
+    restart: unless-stopped
+
+  dask-scheduler:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dask
+    container_name: agri-dask-scheduler
+    command: ["dask", "scheduler", "--host", "0.0.0.0", "--port", "8786", "--dashboard-address", ":8787"]
+    ports:
+      - "8786:8786"
+      - "8787:8787"
+    volumes:
+      - ./:/opt/app
+
+  dask-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dask
+    container_name: agri-dask-worker
+    depends_on:
+      - dask-scheduler
+    command: ["dask", "worker", "tcp://dask-scheduler:8786", "--nthreads", "1", "--memory-limit", "2GB"]
+    volumes:
+      - ./:/opt/app
+
+volumes:
+  pgdata:

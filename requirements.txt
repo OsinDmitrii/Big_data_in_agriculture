@@ -1,0 +1,22 @@
+xarray>=2024.1
+pandas>=2.0
+numpy>=1.24
+pyyaml>=6.0
+pyarrow>=14.0
+
+cdsapi>=0.7.7
+netcdf4>=1.6.5
+h5netcdf>=1.3.0   # опционально
+
+dask[complete]
+distributed
+
+prefect>=3.0
+
+sqlalchemy>=2.0
+psycopg2-binary>=2.9
+
+matplotlib
+streamlit>=1.30
+
+

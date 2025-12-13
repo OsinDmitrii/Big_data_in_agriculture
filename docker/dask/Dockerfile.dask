@@ -1,0 +1,7 @@
+FROM daskdev/dask:latest
+
+USER root
+RUN python -m pip install --no-cache-dir -U pip \
+ && python -m pip install --no-cache-dir pyarrow
+
+WORKDIR /opt/app
