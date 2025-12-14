@@ -84,7 +84,7 @@ docker compose ps
 
 ### A) EXTRACT (скачать сырьё в data/raw/era5-land)
 
-$ --limit-days 0 = весь месяц $
+**--limit-days 0 = весь месяц**
 
 ```bash
 python flows/download_era5_land.py \
