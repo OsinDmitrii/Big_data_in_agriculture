@@ -76,14 +76,15 @@
 ---
 ### 0) Поднять весь проект
 
+```bash
 docker compose up -d
 docker compose ps
-
+```
 ---
 
 ### A) EXTRACT (скачать сырьё в data/raw/era5-land)
 
---limit-days 0 = весь месяц
+$ --limit-days 0 = весь месяц $
 
 ```bash
 python flows/download_era5_land.py \
@@ -92,6 +93,7 @@ python flows/download_era5_land.py \
   --limit-days 0 \
   --vars t2m,d2m,tp,u10,v10,swvl1,swvl2
 ```
+
 ---
 
 ### Проверка
